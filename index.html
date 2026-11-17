@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<!-- RFQ 智能报价助手：单文件 HTML + localStorage 本地存储，零依赖，双击即用 -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>RFQ 智能报价助手</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23FF9A76'/%3E%3Cstop offset='1' stop-color='%23F4553C'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='15' fill='url(%23g)'/%3E%3Cpath d='M18 40l9-11 7 7 11-14' fill='none' stroke='white' stroke-width='5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='45' cy='22' r='4' fill='%23FFE08A'/%3E%3C/svg%3E">
+<style>
+:root{
+  --coral:#FF7A59; --coral-d:#F2603C; --coral-l:#FFE9E2;
+  --accent-2:#FF9A6B; --acc-rgb:255,122,89;
+  --ink:#2B2B33; --sub:#8A8A95; --line:#EFEFF2; --bg:#F7F8FA;
+  --green:#27AE60; --green-l:#E7F6EC; --red:#E8453C; --red-l:#FDECEA;
+  --amber:#E9A100; --amber-l:#FFF6DC; --blue:#3E8BFF; --blue-l:#E9F1FF;
+  --purple:#8B5CF6; --purple-l:#F0EAFE;
+  --card:#FFFFFF; --shadow:0 4px 16px rgba(40,40,60,.06); --shadow-h:0 8px 26px rgba(40,40,60,.1);
+  --sidebar-w:222px; --topbar-h:60px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+html,body{margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5;overflow-x:hidden;}
+button,input,select,textarea{font-family:inherit;font-size:16px;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:#E3D6D0;border-radius:8px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ============ 顶部栏 ============ */
+.topbar{position:sticky;top:0;z-index:40;height:var(--topbar-h);
+  background:linear-gradient(135deg,var(--coral),var(--accent-2));color:#fff;
+  display:flex;align-items:center;gap:12px;padding:0 20px;box-shadow:0 2px 14px rgba(var(--acc-rgb),.3);}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;letter-spacing:.3px;}
+.brand svg{width:26px;height:26px;flex:0 0 auto;}
+.brand small{display:block;font-size:10px;font-weight:600;opacity:.85;letter-spacing:1px;}
+.topbar .spacer{flex:1;}
+.tb-chip{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;background:rgba(255,255,255,.2);
+  padding:6px 12px;border-radius:999px;cursor:pointer;border:none;color:#fff;}
+.tb-chip:hover{background:rgba(255,255,255,.32);}
+.tb-chip svg{width:15px;height:15px;}
+.menu-toggle{display:none;border:none;background:rgba(255,255,255,.2);color:#fff;width:38px;height:38px;
+  border-radius:10px;cursor:pointer;align-items:center;justify-content:center;}
+.menu-toggle svg{width:22px;height:22px;}
+
+/* ============ 布局 ============ */
+.layout{display:flex;min-height:calc(100vh - var(--topbar-h));}
+.sidebar{width:var(--sidebar-w);flex:0 0 var(--sidebar-w);background:var(--card);border-right:1px solid var(--line);
+  padding:16px 12px;position:sticky;top:var(--topbar-h);height:calc(100vh - var(--topbar-h));overflow-y:auto;}
+.side-label{font-size:11px;color:var(--sub);font-weight:700;letter-spacing:1px;padding:6px 12px 8px;}
+.nav-item{display:flex;align-items:center;gap:12px;width:100%;border:none;background:transparent;color:#5A5A66;
+  font-size:14px;font-weight:600;padding:11px 12px;border-radius:11px;cursor:pointer;margin-bottom:3px;text-align:left;}
+.nav-item svg{width:19px;height:19px;flex:0 0 auto;stroke:currentColor;}
+.nav-item:hover{background:var(--bg);}
+.nav-item.active{background:var(--coral-l);color:var(--coral-d);}
+.nav-item .badge{margin-left:auto;background:var(--coral);color:#fff;font-size:10px;font-weight:800;
+  min-width:18px;height:18px;padding:0 5px;border-radius:999px;display:flex;align-items:center;justify-content:center;}
+.nav-item .badge[hidden]{display:none;}
+.side-foot{margin-top:18px;border-top:1px solid var(--line);padding-top:14px;font-size:11px;color:var(--sub);line-height:1.7;padding-left:12px;}
+.main{flex:1;min-width:0;padding:22px 26px 60px;max-width:1400px;margin:0 auto;width:100%;}
+.bottom-nav{display:none;}
+
+/* ============ 通用组件 ============ */
+.page{display:none;animation:fade .25s ease;}
+.page.active{display:block;}
+@keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+.page-head{display:flex;align-items:flex-end;gap:12px;margin-bottom:18px;flex-wrap:wrap;}
+.page-head h1{font-size:24px;margin:0;font-weight:800;letter-spacing:.3px;}
+.page-head p{margin:2px 0 0;color:var(--sub);font-size:13px;}
+.page-head .spacer{flex:1;}
+.card{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px;}
+.card-h{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.card-h h2{font-size:16px;margin:0;font-weight:800;}
+.card-h .spacer{flex:1;}
+.card-h svg{width:18px;height:18px;stroke:var(--coral-d);}
+.muted{color:var(--sub);}
+.tiny{font-size:12px;}
+.btn{border:none;border-radius:10px;padding:9px 15px;font-size:13px;font-weight:700;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;transition:transform .1s,background .15s;min-height:38px;}
+.btn svg{width:15px;height:15px;stroke:currentColor;}
+.btn:active{transform:scale(.96);}
+.btn-primary{background:var(--coral);color:#fff;}
+.btn-primary:hover{background:var(--coral-d);}
+.btn-ghost{background:var(--bg);color:#555;}
+.btn-ghost:hover{background:#EDEEF1;}
+.btn-line{background:#fff;border:1.5px solid var(--line);color:#555;}
+.btn-line:hover{border-color:var(--coral);color:var(--coral-d);}
+.btn-green{background:var(--green);color:#fff;}
+.btn-sm{padding:6px 11px;min-height:32px;font-size:12px;border-radius:8px;}
+.btn-danger{background:var(--red-l);color:var(--red);}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;}
+.chip.green{background:var(--green-l);color:var(--green);}
+.chip.red{background:var(--red-l);color:var(--red);}
+.chip.amber{background:var(--amber-l);color:var(--amber);}
+.chip.blue{background:var(--blue-l);color:var(--blue);}
+.chip.purple{background:var(--purple-l);color:var(--purple);}
+.chip.gray{background:var(--bg);color:var(--sub);}
+
+/* 统计卡 */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px;}
+.stat{background:var(--card);border-radius:15px;padding:17px 18px;box-shadow:var(--shadow);position:relative;overflow:hidden;}
+.stat::after{content:"";position:absolute;right:-16px;top:-16px;width:70px;height:70px;border-radius:50%;background:var(--coral-l);opacity:.5;}
+.stat .v{font-size:27px;font-weight:800;color:var(--coral-d);line-height:1.1;position:relative;z-index:1;}
+.stat .l{font-size:12px;color:var(--sub);margin-top:6px;font-weight:600;position:relative;z-index:1;}
+.stat .ic{position:absolute;right:14px;bottom:12px;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;z-index:1;}
+.stat .ic svg{width:17px;height:17px;}
+.stat:nth-child(1) .ic{background:var(--coral-l);color:var(--coral-d);}
+.stat:nth-child(2) .ic{background:var(--amber-l);color:var(--amber);}
+.stat:nth-child(3) .ic{background:var(--green-l);color:var(--green);}
+.stat:nth-child(4) .ic{background:var(--blue-l);color:var(--blue);}
+
+/* hero */
+.hero{background:linear-gradient(125deg,#FF7A59,#FF9A6B);border-radius:18px;padding:22px 26px;color:#fff;
+  margin-bottom:18px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(var(--acc-rgb),.28);}
+.hero::after{content:"";position:absolute;right:-30px;top:-40px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.12);}
+.hero h2{margin:0 0 5px;font-size:21px;font-weight:800;}
+.hero p{margin:0;opacity:.92;font-size:13px;}
+.hero .hero-stats{display:flex;gap:26px;margin-top:16px;position:relative;z-index:1;flex-wrap:wrap;}
+.hero .hero-stats div span{display:block;}
+.hero .hero-stats .n{font-size:19px;font-weight:800;}
+.hero .hero-stats .t{font-size:11px;opacity:.85;}
+
+/* 列表项 */
+.list-row{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);border-radius:12px;
+  margin-bottom:9px;transition:box-shadow .15s,border-color .15s;background:#fff;}
+.list-row:hover{box-shadow:var(--shadow);border-color:var(--coral-l);}
+.list-row .ri{width:38px;height:38px;flex:0 0 auto;border-radius:10px;display:grid;place-items:center;
+  background:var(--coral-l);color:var(--coral-d);font-weight:800;font-size:13px;}
+.list-row .rb{flex:1;min-width:0;}
+.list-row .rt{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.list-row .rs{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.list-row .ra{display:flex;gap:6px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;}
+.score-ring{width:46px;height:46px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;
+  font-size:13px;font-weight:800;border:3px solid var(--line);}
+.score-ring.hi{color:var(--green);border-color:var(--green);background:var(--green-l);}
+.score-ring.mid{color:var(--amber);border-color:var(--amber);background:var(--amber-l);}
+.score-ring.lo{color:var(--sub);border-color:#D8D8DE;background:var(--bg);}
+
+/* 表单 */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:700;color:#5A5A66;margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;
+  background:#fff;color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s;font-size:15px;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(var(--acc-rgb),.13);}
+.field textarea{resize:vertical;min-height:74px;line-height:1.6;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field-row.three{grid-template-columns:repeat(3,1fr);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+.hint{font-size:11px;color:var(--sub);margin-top:4px;}
+
+/* 报价结果 */
+.quote-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.qcard{border-radius:14px;padding:16px;border:1.5px solid var(--line);position:relative;}
+.qcard .tag{font-size:11px;font-weight:800;letter-spacing:1px;color:var(--sub);}
+.qcard .price{font-size:24px;font-weight:800;margin:6px 0 2px;color:var(--ink);}
+.qcard .cny{font-size:12px;color:var(--sub);}
+.qcard.exw{background:var(--blue-l);border-color:#CFE0FF;}
+.qcard.fob{background:var(--coral-l);border-color:#FFD3C7;}
+.qcard.cif{background:var(--green-l);border-color:#C7EBD4;}
+.qcard .reco{position:absolute;top:-9px;right:10px;background:var(--coral);color:#fff;font-size:9px;font-weight:800;
+  padding:2px 8px;border-radius:999px;}
+
+/* 表格 */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;}
+th{font-size:11px;color:var(--sub);font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--bg);}
+tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--item-hbg,#FFFBF9);}
+
+/* 条形图 */
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px;}
+.bar-row .bl{width:88px;flex:0 0 auto;color:#555;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-row .bt{flex:1;background:var(--bg);border-radius:999px;height:20px;overflow:hidden;}
+.bar-row .bf{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--coral),var(--accent-2));
+  min-width:3px;transition:width .5s ease;}
+.bar-row .bv{width:40px;text-align:right;font-weight:700;color:var(--ink);}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* 话术输出 */
+.composer-out{background:#FFFDFC;border:1.5px dashed var(--coral-l);border-radius:14px;padding:18px;min-height:200px;
+  white-space:pre-wrap;font-size:14px;line-height:1.75;color:#333;}
+.var-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.var-grid .field{margin-bottom:0;}
+
+/* 空状态 */
+.empty{text-align:center;padding:40px 20px;color:var(--sub);}
+.empty svg{width:52px;height:52px;stroke:#D8C9C3;margin-bottom:10px;}
+.empty p{margin:6px 0;font-size:14px;}
+
+/* tab 切换（数据管理内） */
+.subtabs{display:flex;gap:6px;border-bottom:2px solid var(--line);margin-bottom:18px;flex-wrap:wrap;}
+.subtab{border:none;background:transparent;padding:9px 15px;font-size:13px;font-weight:700;color:var(--sub);
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
+.subtab.on{color:var(--coral-d);border-bottom-color:var(--coral);}
+.subpane{display:none;}
+.subpane.on{display:block;}
+
+/* ============ 弹框 & toast ============ */
+.modal-mask{position:fixed;inset:0;background:rgba(30,25,25,.44);z-index:100;display:flex;align-items:center;
+  justify-content:center;padding:18px;animation:fade .18s;}
+.modal{background:#fff;border-radius:18px;width:100%;max-width:560px;max-height:88vh;overflow-y:auto;
+  box-shadow:0 20px 60px rgba(0,0,0,.22);animation:pop .22s ease;}
+@keyframes pop{from{transform:scale(.94);opacity:0;}to{transform:none;opacity:1;}}
+.modal-h{display:flex;align-items:center;gap:10px;padding:18px 20px;border-bottom:1px solid var(--line);}
+.modal-h h3{margin:0;font-size:17px;font-weight:800;}
+.modal-h .spacer{flex:1;}
+.modal-x{border:none;background:var(--bg);width:30px;height:30px;border-radius:8px;cursor:pointer;color:var(--sub);font-size:18px;}
+.modal-b{padding:20px;}
+.modal-f{display:flex;gap:10px;justify-content:flex-end;padding:0 20px 20px;}
+.modal-f .btn{min-width:88px;justify-content:center;}
+#toastRoot{position:fixed;top:74px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.toast{background:#32323A;color:#fff;font-size:13px;font-weight:600;padding:10px 18px;border-radius:999px;
+  box-shadow:0 6px 20px rgba(0,0,0,.2);animation:tin .25s ease;}
+@keyframes tin{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+
+/* ============ 响应式 ============ */
+@media(max-width:900px){
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  .two-col,.form-grid{grid-template-columns:1fr;}
+  .quote-cards{grid-template-columns:1fr;}
+  .var-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:720px){
+  .menu-toggle{display:flex;}
+  .sidebar{position:fixed;left:0;top:var(--topbar-h);z-index:35;transform:translateX(-105%);transition:transform .25s;
+    box-shadow:8px 0 30px rgba(0,0,0,.12);height:calc(100vh - var(--topbar-h));}
+  .sidebar.open{transform:none;}
+  .main{padding:16px 14px 90px;}
+  .layout{display:block;}
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:38;background:#fff;border-top:1px solid var(--line);
+    padding:6px 4px calc(6px + env(safe-area-inset-bottom));box-shadow:0 -2px 14px rgba(0,0,0,.05);}
+  .bottom-nav button{flex:1;border:none;background:transparent;color:var(--sub);font-size:10px;font-weight:700;
+    display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 0;}
+  .bottom-nav button svg{width:21px;height:21px;stroke:currentColor;}
+  .bottom-nav button.active{color:var(--coral-d);}
+  .page-head h1{font-size:20px;}
+  .field-row.three{grid-template-columns:1fr 1fr;}
+  .list-row .ra{width:100%;justify-content:flex-start;margin-top:6px;}
+  .list-row{flex-wrap:wrap;}
+}
+@media(max-width:420px){
+  .field-row,.field-row.three{grid-template-columns:1fr;}
+  .var-grid{grid-template-columns:1fr;}
+  .stat .v{font-size:23px;}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="menu-toggle" id="menuToggle" aria-label="菜单">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+  </button>
+  <div class="brand">
+    <svg viewBox="0 0 64 64" fill="none"><path d="M14 44l11-13 8 8 15-19" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="48" cy="20" r="5" fill="#FFE08A"/></svg>
+    <div>RFQ 智能报价助手<small>INTERNATIONAL TRADE COPILOT</small></div>
+  </div>
+  <div class="spacer"></div>
+  <button class="tb-chip" data-act="goto" data-page="data" title="数据管理">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/></svg>
+    <span>数据</span>
+  </button>
+</header>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="side-label">工作区</div>
+    <button class="nav-item active" data-act="goto" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      工作台</button>
+    <button class="nav-item" data-act="goto" data-page="matching">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.4 5.3 5.6.6-4.2 3.9 1.2 5.7L12 15.8 7 18.5l1.2-5.7L4 8.9l5.6-.6z"/></svg>
+      智能匹配 <span class="badge" id="navBadgeRfq" hidden>0</span></button>
+    <button class="nav-item" data-act="goto" data-page="calculator">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h2M14 10h2M8 14h2M14 14h2M8 18h2M14 18h2"/></svg>
+      报价计算器</button>
+    <button class="nav-item" data-act="goto" data-page="composer">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+      话术生成</button>
+    <button class="nav-item" data-act="goto" data-page="analytics">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18M7 15l4-5 3 3 5-7"/></svg>
+      买家分析</button>
+    <div class="side-label" style="margin-top:12px;">配置</div>
+    <button class="nav-item" data-act="goto" data-page="data">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.6V21h-4v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.6-1H3v-4h.1a1.7 1.7 0 001.6-1 1.7 1.7 0 00-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 001.9.3A1.7 1.7 0 0010 3V3h4v.1a1.7 1.7 0 001 1.6 1.7 1.7 0 001.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 00-.3 1.9 1.7 1.7 0 001.6 1H21v4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+      产品库 / 设置</button>
+    <div class="side-foot">
+      数据仅保存在本机浏览器<br>建议定期在「数据管理」导出备份
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ============ 工作台 ============ -->
+    <section class="page active" id="page-dashboard">
+      <div class="hero">
+        <h2 id="greeting">您好，报价高手 👋</h2>
+        <p>把买家的每一条询盘，变成又快又准的报价。</p>
+        <div class="hero-stats">
+          <div><span class="n" id="heroNew">0</span><span class="t">待处理询盘</span></div>
+          <div><span class="n" id="heroHigh">0</span><span class="t">高价值机会</span></div>
+          <div><span class="n" id="heroQuoted">0</span><span class="t">已报价</span></div>
+          <div><span class="n" id="heroAmount">$0</span><span class="t">报价总额</span></div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="v" id="stRfq">0</div><div class="l">RFQ 询价总数</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 4h16v16H4zM8 9h8M8 13h8M8 17h5"/></svg></div></div>
+        <div class="stat"><div class="v" id="stNew">0</div><div class="l">待跟进</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div></div>
+        <div class="stat"><div class="v" id="stWin">0%</div><div class="l">报价赢单率</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0zM7 6H4v2a3 3 0 003 3M17 6h3v2a3 3 0 01-3 3"/></svg></div></div>
+        <div class="stat"><div class="v" id="stProd">0</div><div class="l">产品库 SKU</div>
+          <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg></div></div>
+      </div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 3l2.4 5.3 5.6.6-4.2 3.9 1.2 5.7L12 15.8 7 18.5l1.2-5.7L4 8.9l5.6-.6z"/></svg>
+            <h2>待处理询盘</h2><div class="spacer"></div>
+            <button class="btn btn-line btn-sm" data-act="goto" data-page="matching">查看全部</button></div>
+          <div id="dashRfqList"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <h2>最近报价</h2><div class="spacer"></div>
+            <button class="btn btn-line btn-sm" data-act="goto" data-page="calculator">新建报价</button></div>
+          <div id="dashQuoteList"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg><h2>快捷开始</h2></div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" data-act="add-rfq">＋ 录入 RFQ 询盘</button>
+          <button class="btn btn-ghost" data-act="goto" data-page="matching">智能匹配产品</button>
+          <button class="btn btn-ghost" data-act="goto" data-page="calculator">计算报价</button>
+          <button class="btn btn-ghost" data-act="goto" data-page="composer">生成开发话术</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 智能匹配 ============ -->
+    <section class="page" id="page-matching">
+      <div class="page-head">
+        <div><h1>RFQ 智能匹配</h1><p>基于产品库自动为每个询盘打分，优先跟进高价值机会</p></div>
+        <div class="spacer"></div>
+        <button class="btn btn-primary" data-act="add-rfq">＋ 录入 RFQ</button>
+        <button class="btn btn-ghost" data-act="batch-match">批量重算匹配</button>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>询盘列表</h2><div class="spacer"></div>
+          <input id="rfqSearch" placeholder="搜索买家 / 产品 / 国家…" style="border:1.5px solid var(--line);border-radius:9px;padding:8px 11px;width:230px;font-size:13px;" oninput="renderMatching()">
+          <select id="rfqFilter" onchange="renderMatching()" style="border:1.5px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;">
+            <option value="all">全部状态</option><option value="new">待处理</option>
+            <option value="quoted">已报价</option><option value="won">赢单</option><option value="lost">丢单</option>
+          </select>
+        </div>
+        <div id="rfqList"></div>
+      </div>
+      <div class="card" id="matchDetailCard" style="display:none;">
+        <div class="card-h"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 3l2.4 5.3 5.6.6-4.2 3.9 1.2 5.7L12 15.8 7 18.5l1.2-5.7L4 8.9l5.6-.6z"/></svg>
+          <h2 id="matchDetailTitle">匹配结果</h2><div class="spacer"></div>
+          <button class="btn btn-line btn-sm" data-act="close-match">收起</button></div>
+        <div id="matchDetail"></div>
+      </div>
+    </section>
+
+    <!-- ============ 报价计算器 ============ -->
+    <section class="page" id="page-calculator">
+      <div class="page-head">
+        <div><h1>报价计算器</h1><p>成本 + 费用 + 利润率，一键得出 EXW / FOB / CIF 三档报价</p></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-h"><h2>① 输入参数</h2></div>
+          <div class="field">
+            <label>关联 RFQ（可选，选中后自动带入数量与目标价）</label>
+            <select id="calcRfq" onchange="onCalcRfqChange()"><option value="">— 不关联 —</option></select>
+          </div>
+          <div class="field">
+            <label>选择产品（自动带入成本与交期）</label>
+            <select id="calcProduct" onchange="onCalcProductChange()"><option value="">— 手动输入 —</option></select>
+          </div>
+          <div class="field-row three">
+            <div class="field"><label>产品成本 (¥/件)</label><input type="number" id="cCost" value="50" min="0" step="0.01" oninput="calc()"></div>
+            <div class="field"><label>数量 (件)</label><input type="number" id="cQty" value="1000" min="1" step="1" oninput="calc()"></div>
+            <div class="field"><label>利润率 (%)</label><input type="number" id="cMargin" value="25" min="0" step="0.5" oninput="calc()"></div>
+          </div>
+          <div class="field-row three">
+            <div class="field"><label>包装费 (¥/件)</label><input type="number" id="cPack" value="3" min="0" step="0.01" oninput="calc()"></div>
+            <div class="field"><label>国内运费 (¥ 总额)</label><input type="number" id="cDomestic" value="800" min="0" step="1" oninput="calc()"></div>
+            <div class="field"><label>国际运费 ($ 总额)</label><input type="number" id="cFreight" value="350" min="0" step="1" oninput="calc()"></div>
+          </div>
+          <div class="field-row three">
+            <div class="field"><label>保险费率 (%)</label><input type="number" id="cInsurance" value="0.3" min="0" step="0.1" oninput="calc()"></div>
+            <div class="field"><label>平台佣金 (%)</label><input type="number" id="cFee" value="3" min="0" step="0.1" oninput="calc()"></div>
+            <div class="field"><label>汇率 (¥/$)</label><input type="number" id="cRate" value="7.15" min="0.01" step="0.01" oninput="calc()"></div>
+          </div>
+          <p class="hint">汇率、费用默认值可在「产品库 / 设置 → 报价参数」中修改。</p>
+        </div>
+        <div>
+          <div class="card">
+            <div class="card-h"><h2>② 报价结果</h2><div class="spacer"></div><span class="chip gray tiny" id="calcTargetHint"></span></div>
+            <div class="quote-cards">
+              <div class="qcard exw"><div class="tag">EXW 出厂价</div><div class="price" id="qExw">$0.00</div><div class="cny" id="qExwC">≈ ¥0.00</div></div>
+              <div class="qcard fob"><span class="reco">推荐</span><div class="tag">FOB 离岸价</div><div class="price" id="qFob">$0.00</div><div class="cny" id="qFobC">≈ ¥0.00</div></div>
+              <div class="qcard cif"><div class="tag">CIF 到岸价</div><div class="price" id="qCif">$0.00</div><div class="cny" id="qCifC">≈ ¥0.00</div></div>
+            </div>
+            <div id="profitBox" style="margin-top:16px;"></div>
+            <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">
+              <button class="btn btn-primary" data-act="save-quote">保存报价</button>
+              <button class="btn btn-ghost" data-act="quote-to-composer">用此报价生成话术</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-h"><h2>③ 阶梯报价建议</h2></div>
+            <div class="tbl-wrap"><table><thead><tr><th>数量</th><th>建议利润率</th><th>FOB 单价</th><th>FOB 总价</th></tr></thead>
+              <tbody id="tierBody"></tbody></table></div>
+            <p class="hint">量大价优：按梯度自动下调利润率，提升成交竞争力。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 话术生成 ============ -->
+    <section class="page" id="page-composer">
+      <div class="page-head">
+        <div><h1>报价话术生成</h1><p>选模板 + 填变量，秒出多语言专业报价邮件</p></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-h"><h2>① 选择场景与模板</h2></div>
+          <div class="field-row">
+            <div class="field"><label>话术场景</label><select id="tplScene" onchange="onTplSceneChange()"></select></div>
+            <div class="field"><label>模板</label><select id="tplSelect" onchange="onTplSelectChange()"></select></div>
+          </div>
+          <div class="field"><label>关联 RFQ（自动填入买家与产品变量）</label>
+            <select id="compRfq" onchange="onCompRfqChange()"><option value="">— 手动填写 —</option></select></div>
+          <div class="card-h" style="margin-top:6px;"><h2 style="font-size:14px;">② 变量（可修改）</h2></div>
+          <div class="var-grid" id="varGrid"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h2>③ 生成结果</h2><div class="spacer"></div>
+            <button class="btn btn-line btn-sm" data-act="copy-text">复制全文</button>
+            <button class="btn btn-primary btn-sm" data-act="save-letter">保存记录</button></div>
+          <div class="field"><label>邮件主题</label><input id="mailSubject" placeholder="生成后自动填充"></div>
+          <div class="composer-out" id="mailBody">选择模板与变量后，点击「生成话术」即可预览。</div>
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            <button class="btn btn-primary" data-act="gen-text">⚡ 生成话术</button>
+            <button class="btn btn-ghost" data-act="download-letter">导出为 .txt</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>已保存的话术记录</h2></div>
+        <div id="letterList"></div>
+      </div>
+    </section>
+
+    <!-- ============ 买家分析 ============ -->
+    <section class="page" id="page-analytics">
+      <div class="page-head">
+        <div><h1>买家分析看板</h1><p>从询盘数据里看清市场分布、状态漏斗与高价值买家</p></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="v" id="anBuyers">0</div><div class="l">买家总数</div></div>
+        <div class="stat"><div class="v" id="anCountries">0</div><div class="l">覆盖国家/地区</div></div>
+        <div class="stat"><div class="v" id="anQuoted">0</div><div class="l">已报价询盘</div></div>
+        <div class="stat"><div class="v" id="anWon">0</div><div class="l">赢单数</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div class="card-h"><h2>国家 / 地区分布</h2></div><div id="countryBars"></div></div>
+        <div class="card"><div class="card-h"><h2>询盘状态漏斗</h2></div><div id="statusBars"></div></div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div class="card-h"><h2>产品品类热度</h2></div><div id="catBars"></div></div>
+        <div class="card"><div class="card-h"><h2>高价值买家榜</h2></div><div id="buyerRank"></div></div>
+      </div>
+    </section>
+
+    <!-- ============ 数据管理 / 产品库 / 设置 ============ -->
+    <section class="page" id="page-data">
+      <div class="page-head"><div><h1>产品库 / 设置</h1><p>维护产品数据、报价参数与话术模板</p></div></div>
+      <div class="subtabs">
+        <button class="subtab on" data-act="subtab" data-pane="pane-products">产品库</button>
+        <button class="subtab" data-act="subtab" data-pane="pane-settings">报价参数</button>
+        <button class="subtab" data-act="subtab" data-pane="pane-tpl">话术模板</button>
+        <button class="subtab" data-act="subtab" data-pane="pane-data">数据管理</button>
+      </div>
+
+      <div class="subpane on" id="pane-products">
+        <div class="card">
+          <div class="card-h"><h2>产品 SKU</h2><div class="spacer"></div>
+            <button class="btn btn-primary btn-sm" data-act="add-product">＋ 新增产品</button></div>
+          <div class="tbl-wrap"><table><thead><tr><th>产品</th><th>品类</th><th>成本</th><th>MOQ</th><th>交期</th><th>关键词</th><th>操作</th></tr></thead>
+            <tbody id="productBody"></tbody></table></div>
+        </div>
+      </div>
+
+      <div class="subpane" id="pane-settings">
+        <div class="card">
+          <div class="card-h"><h2>公司信息</h2></div>
+          <div class="form-grid">
+            <div class="field"><label>公司名称</label><input id="setCompany"></div>
+            <div class="field"><label>联系人</label><input id="setContact"></div>
+            <div class="field"><label>邮箱</label><input id="setEmail"></div>
+            <div class="field"><label>WhatsApp / 电话</label><input id="setWhatsapp"></div>
+          </div>
+          <div class="card-h" style="margin-top:8px;"><h2>报价默认参数</h2></div>
+          <div class="field-row three">
+            <div class="field"><label>默认汇率 (¥/$)</label><input type="number" id="setRate" step="0.01"></div>
+            <div class="field"><label>默认利润率 (%)</label><input type="number" id="setMargin" step="0.5"></div>
+            <div class="field"><label>平台佣金 (%)</label><input type="number" id="setFee" step="0.1"></div>
+          </div>
+          <div class="field-row three">
+            <div class="field"><label>包装费 (¥/件)</label><input type="number" id="setPack" step="0.01"></div>
+            <div class="field"><label>国内运费 (¥)</label><input type="number" id="setDomestic" step="1"></div>
+            <div class="field"><label>国际运费 ($)</label><input type="number" id="setFreight" step="1"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>保险费率 (%)</label><input type="number" id="setInsurance" step="0.1"></div>
+            <div class="field"><label>默认交期 (天)</label><input type="number" id="setLead" step="1"></div>
+          </div>
+          <button class="btn btn-primary" data-act="save-settings">保存设置</button>
+        </div>
+      </div>
+
+      <div class="subpane" id="pane-tpl">
+        <div class="card">
+          <div class="card-h"><h2>话术模板库</h2><div class="spacer"></div>
+            <button class="btn btn-primary btn-sm" data-act="add-tpl">＋ 新增模板</button></div>
+          <div id="tplManageList"></div>
+        </div>
+      </div>
+
+      <div class="subpane" id="pane-data">
+        <div class="card">
+          <div class="card-h"><h2>数据管理</h2></div>
+          <p class="muted tiny">所有数据仅保存在本机浏览器（localStorage）。换设备或清缓存前请先导出备份。</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+            <button class="btn btn-primary" data-act="export-data">导出备份 (JSON)</button>
+            <button class="btn btn-line" data-act="import-data">导入备份</button>
+            <button class="btn btn-ghost" data-act="load-seed">载入示例数据</button>
+            <button class="btn btn-danger" data-act="clear-data">清空全部数据</button>
+          </div>
+          <input type="file" id="importFile" accept="application/json" style="display:none;" onchange="onImportFile(event)">
+          <div id="dataStats" class="tiny muted" style="margin-top:16px;"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <button class="active" data-act="goto" data-page="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>工作台</button>
+  <button data-act="goto" data-page="matching"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 3l2.4 5.3 5.6.6-4.2 3.9 1.2 5.7L12 15.8 7 18.5l1.2-5.7L4 8.9l5.6-.6z"/></svg>匹配</button>
+  <button data-act="goto" data-page="calculator"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 10h2M14 10h2M8 14h2M14 14h2M8 18h2M14 18h2"/></svg>报价</button>
+  <button data-act="goto" data-page="composer"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>话术</button>
+  <button data-act="goto" data-page="analytics"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M3 3v18h18M7 15l4-5 3 3 5-7"/></svg>分析</button>
+</nav>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ==================== 常量与状态 ==================== */
+var PFX = 'rfq_';
+var K = { products:PFX+'products', rfqs:PFX+'rfqs', quotes:PFX+'quotes', templates:PFX+'templates', letters:PFX+'letters', settings:PFX+'settings' };
+var DB = { products:[], rfqs:[], quotes:[], templates:[], letters:[], settings:{} };
+var CALC_RESULT = null; // 最近一次计算结果，供生成话术使用
+
+var DEFAULT_SETTINGS = {
+  company:'Ningbo Ocean Import & Export Co., Ltd.', contact:'Alice Chen',
+  email:'sales@oceantrade.example.com', whatsapp:'+86 138 0000 0000',
+  rate:7.15, margin:25, fee:3, pack:3, domestic:800, freight:350, insurance:0.3, lead:25
+};
+
+var SCENE_LABELS = { quote:'报价邮件', followup:'跟进催单', counter:'还价应对', first:'首次开发' };
+
+var SEED_PRODUCTS = [
+  {id:'p1', name:'不锈钢保温杯', nameEn:'Stainless Steel Insulated Tumbler', category:'家居用品', cost:28, moq:500, unit:'pcs', lead:25, keywords:['tumbler','water bottle','vacuum flask','insulated cup','保温杯','水杯'], certs:['FDA','LFGB'], capacity:50000},
+  {id:'p2', name:'LED 庭院灯', nameEn:'Solar LED Garden Light', category:'照明灯具', cost:46, moq:200, unit:'pcs', lead:30, keywords:['solar light','garden light','LED lamp','庭院灯','太阳能灯'], certs:['CE','RoHS','IP65'], capacity:20000},
+  {id:'p3', name:'折叠瑜伽垫', nameEn:'Folding Yoga Mat', category:'运动健身', cost:35, moq:300, unit:'pcs', lead:20, keywords:['yoga mat','fitness mat','TPE mat','瑜伽垫','健身垫'], certs:['SGS','REACH'], capacity:30000},
+  {id:'p4', name:'儿童积木玩具', nameEn:'Building Block Toys for Kids', category:'玩具礼品', cost:18, moq:1000, unit:'sets', lead:35, keywords:['building blocks','toy','bricks','educational toy','积木','玩具'], certs:['EN71','ASTM F963','3C'], capacity:80000},
+  {id:'p5', name:'便携式蓝牙音箱', nameEn:'Portable Bluetooth Speaker', category:'消费电子', cost:62, moq:300, unit:'pcs', lead:28, keywords:['bluetooth speaker','wireless speaker','portable audio','音箱','音响'], certs:['CE','FCC','RoHS','BQB'], capacity:25000},
+  {id:'p6', name:'硅胶厨房用具套装', nameEn:'Silicone Kitchenware Set', category:'家居用品', cost:22, moq:500, unit:'sets', lead:22, keywords:['kitchenware','silicone utensil','cooking tools','厨具','硅胶'], certs:['FDA','LFGB'], capacity:40000}
+];
+
+var SEED_RFQS = [
+  {id:'r1', buyer:'Smith Trading LLC', country:'美国', product:'Stainless Steel Insulated Tumbler 20oz', qty:5000, unit:'pcs', targetPrice:6.5, specs:'double wall vacuum, custom logo, FDA cert needed', date:'2026-11-14', status:'new', source:'Alibaba.com', note:''},
+  {id:'r2', buyer:'GreenLife GmbH', country:'德国', product:'Solar LED Garden Light IP65', qty:2000, unit:'pcs', targetPrice:9.2, specs:'solar powered, waterproof IP65, CE/RoHS', date:'2026-11-13', status:'new', source:'Made-in-China', note:''},
+  {id:'r3', buyer:'Amazon Seller UK', country:'英国', product:'Folding Yoga Mat TPE', qty:3000, unit:'pcs', targetPrice:8.0, specs:'eco friendly TPE, anti-slip, fast shipping', date:'2026-11-12', status:'quoted', source:'Alibaba.com', note:'已发报价，等待回复'},
+  {id:'r4', buyer:'Kidz World Ltd', country:'加拿大', product:'Building Blocks Toys 500pcs set', qty:10000, unit:'sets', targetPrice:4.5, specs:'EN71 certificate, colorful, age 3+', date:'2026-11-11', status:'new', source:'Global Sources', note:''},
+  {id:'r5', buyer:'TechNova Pty', country:'澳大利亚', product:'Portable Bluetooth Speaker TWS', qty:1500, unit:'pcs', targetPrice:14.0, specs:'TWS, waterproof, 20W, FCC cert', date:'2026-11-10', status:'won', source:'Alibaba.com', note:'已下单，待生产'},
+  {id:'r6', buyer:'Casa Bella SRL', country:'意大利', product:'Silicone Kitchenware Set 12pcs', qty:2500, unit:'sets', targetPrice:5.8, specs:'FDA food grade, heat resistant, custom color', date:'2026-11-09', status:'new', source:'Alibaba.com', note:''}
+];
+
+var SEED_TEMPLATES = [
+  {id:'t1', scene:'quote', lang:'English', name:'英文正式报价', subject:'Quotation for {{product}} – {{company}}', body:'Dear {{buyer}},\n\nThank you for your inquiry. We are pleased to offer our best quotation for {{product}}.\n\n• Product: {{product}}\n• Quantity: {{qty}} {{unit}}\n• Unit Price ({{term}} {{currency}}): {{price}}\n• Lead Time: {{leadTime}} days\n• Certifications: {{certs}}\n• Validity: {{validUntil}}\n\nWith {{years}} years of export experience, we guarantee stable quality and on-time delivery. Samples are available for your evaluation.\n\nLooking forward to your reply.\n\nBest regards,\n{{contact}}\n{{company}}\n{{email}} | {{whatsapp}}'},
+  {id:'t2', scene:'quote', lang:'中文', name:'中文报价单', subject:'{{product}} 报价单 – {{company}}', body:'尊敬的 {{buyer}}：\n\n感谢您来函询价。很高兴为您提供 {{product}} 的优惠报价：\n\n• 产品：{{product}}\n• 数量：{{qty}} {{unit}}\n• 单价（{{term}} {{currency}}）：{{price}}\n• 交期：{{leadTime}} 天\n• 认证：{{certs}}\n• 报价有效期：{{validUntil}}\n\n我司拥有多年出口经验，品质稳定、交期准时，可提供样品供您检测。期待与您的合作！\n\n此致\n{{contact}}\n{{company}}\n{{email}} | {{whatsapp}}'},
+  {id:'t3', scene:'followup', lang:'English', name:'英文跟进催单', subject:'Following up: Quotation for {{product}}', body:'Dear {{buyer}},\n\nHope this email finds you well. I am following up on the quotation for {{product}} sent on {{date}}.\n\nIf you have any questions about the price ({{price}} / {{term}}) or need samples, please feel free to let me know. We can also adjust the specification to fit your target price.\n\nWaiting for your feedback.\n\nBest regards,\n{{contact}}\n{{company}}'},
+  {id:'t4', scene:'counter', lang:'English', name:'英文还价应对', subject:'Re: Price discussion – {{product}}', body:'Dear {{buyer}},\n\nThank you for your feedback on our price. We fully understand your target of {{targetPrice}}.\n\nWhile our quoted {{price}} ({{term}}) is already very competitive, we can offer a better price if the quantity is increased to {{qty}} {{unit}}, or we can slightly adjust the material without compromising quality.\n\nCould you kindly share your target quantity? We will do our best to support you.\n\nBest regards,\n{{contact}}\n{{company}}'},
+  {id:'t5', scene:'first', lang:'English', name:'英文首次开发', subject:'Reliable supplier for {{product}} – {{company}}', body:'Dear {{buyer}},\n\nI noticed your sourcing demand for {{product}}. We are a professional manufacturer and exporter with strong supply capacity.\n\n• Competitive factory price\n• Certifications: {{certs}}\n• Flexible MOQ from {{qty}} {{unit}}\n• On-time delivery worldwide\n\nMay I send you our latest catalog and best quotation?\n\nBest regards,\n{{contact}}\n{{company}}\n{{email}}'}
+];
+
+/* ==================== 存储层 ==================== */
+function load(key, fallback){
+  try{ var raw=localStorage.getItem(key); if(raw===null||raw===undefined) return fallback; return JSON.parse(raw); }
+  catch(e){ return fallback; }
+}
+function save(key,val){ try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){ toast('存储空间不足'); } }
+function saveAll(){ save(K.products,DB.products); save(K.rfqs,DB.rfqs); save(K.quotes,DB.quotes); save(K.templates,DB.templates); save(K.letters,DB.letters); save(K.settings,DB.settings); }
+function initDB(){
+  var seeded = localStorage.getItem(PFX+'seeded');
+  DB.settings = Object.assign({}, DEFAULT_SETTINGS, load(K.settings,{}));
+  DB.products = load(K.products, null);
+  DB.rfqs     = load(K.rfqs, null);
+  DB.quotes   = load(K.quotes, []);
+  DB.templates= load(K.templates, null);
+  DB.letters  = load(K.letters, []);
+  if(!seeded || DB.products===null || DB.rfqs===null || DB.templates===null){
+    if(DB.products===null) DB.products = SEED_PRODUCTS.map(function(p){return Object.assign({},p);});
+    if(DB.rfqs===null) DB.rfqs = SEED_RFQS.map(function(r){return Object.assign({},r);});
+    if(DB.templates===null) DB.templates = SEED_TEMPLATES.map(function(t){return Object.assign({},t);});
+    localStorage.setItem(PFX+'seeded','1');
+    saveAll();
+  }
+  // 计算所有 RFQ 的匹配分并缓存
+  DB.rfqs.forEach(function(r){ var m=bestMatch(r); r._score=m?m.score:0; r._bestId=m?m.product.id:''; });
+}
+
+/* ==================== 工具函数 ==================== */
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function money(n){ return '$'+Number(n||0).toFixed(2); }
+function cny(n){ return '¥'+Number(n||0).toFixed(2); }
+function today(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function addDays(n){ var d=new Date(); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function toast(msg){ var r=document.getElementById('toastRoot'); var t=document.createElement('div'); t.className='toast'; t.textContent=msg; r.appendChild(t); setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(function(){t.remove();},300);},2000); }
+function statusChip(s){ var map={new:['gray','待处理'],quoted:['blue','已报价'],won:['green','赢单'],lost:['red','丢单']}; var x=map[s]||map.new; return '<span class="chip '+x[0]+'">'+x[1]+'</span>'; }
+function scoreClass(s){ return s>=75?'hi':s>=50?'mid':'lo'; }
+
+function modal(title, bodyHtml, footerHtml){
+  var root=document.getElementById('modalRoot');
+  root.innerHTML='<div class="modal-mask" data-act="modal-mask"><div class="modal"><div class="modal-h"><h3>'+title+'</h3><div class="spacer"></div><button class="modal-x" data-act="close-modal">×</button></div><div class="modal-b">'+bodyHtml+'</div>'+(footerHtml?'<div class="modal-f">'+footerHtml+'</div>':'')+'</div></div>';
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+function confirmModal(msg, onYes){
+  modal('请确认','<p style="margin:0;font-size:14px;line-height:1.7;">'+msg+'</p>',
+    '<button class="btn btn-ghost" data-act="close-modal">取消</button><button class="btn btn-primary" id="confirmYes">确定</button>');
+  document.getElementById('confirmYes').onclick=function(){ closeModal(); onYes(); };
+}
+
+/* ==================== 智能匹配算法 ==================== */
+function tokenize(s){
+  s=String(s||'').toLowerCase();
+  var en=s.match(/[a-z0-9]+/g)||[];
+  var zh=[]; var zhRuns=s.match(/[\u4e00-\u9fa5]+/g)||[];
+  zhRuns.forEach(function(run){ for(var i=0;i<run.length-1;i++) zh.push(run.slice(i,i+2)); if(run.length===1) zh.push(run); });
+  return en.concat(zh);
+}
+function matchRFQ(rfq, product){
+  var rTokens=tokenize(rfq.product+' '+rfq.specs);
+  var pTokens=tokenize(product.name+' '+product.nameEn+' '+product.keywords.join(' ')+' '+product.category);
+  var pSet={}; pTokens.forEach(function(t){pSet[t]=1;});
+  var hits={}; var hitCount=0;
+  rTokens.forEach(function(t){ if(pSet[t]&&!hits[t]){hits[t]=1;hitCount++;} });
+  // 1. 关键词匹配 0-40
+  var kwScore=Math.min(40, hitCount*8);
+  // 2. 品类匹配 0-15
+  var catScore=0;
+  var cat=String(product.category||'');
+  if(cat && (rfq.product+' '+rfq.specs).toLowerCase().indexOf(cat.toLowerCase())>=0) catScore=15;
+  else if(hitCount>=2) catScore=8;
+  // 3. MOQ / 数量契合 0-15
+  var qtyScore = rfq.qty>=product.moq ? 15 : Math.max(0, Math.round(15*rfq.qty/product.moq));
+  // 4. 目标价 vs 预估成本 0-20
+  var priceScore=0;
+  if(rfq.targetPrice){
+    var estFob = ((product.cost+DB.settings.pack)/DB.settings.rate)*(1+DB.settings.margin/100);
+    var ratio = rfq.targetPrice/estFob;
+    if(ratio>=1.0) priceScore=20;
+    else if(ratio>=0.85) priceScore=14;
+    else if(ratio>=0.7) priceScore=8;
+    else priceScore=3;
+  } else priceScore=10;
+  // 5. 认证 / 市场 0-10
+  var certScore=0;
+  var specLow=String(rfq.specs||'').toLowerCase();
+  (product.certs||[]).forEach(function(c){ if(specLow.indexOf(c.toLowerCase())>=0) certScore+=4; });
+  certScore=Math.min(10,certScore);
+  var score=Math.min(100, kwScore+catScore+qtyScore+priceScore+certScore);
+  var reasons=[];
+  if(hitCount) reasons.push('关键词命中 '+hitCount+' 项');
+  if(catScore) reasons.push('品类相符');
+  if(qtyScore===15) reasons.push('数量满足 MOQ');
+  if(priceScore>=14) reasons.push('目标价空间充足');
+  if(certScore>0) reasons.push('认证匹配');
+  return { score:score, product:product, hits:Object.keys(hits), reasons:reasons,
+           breakdown:{kw:kwScore,cat:catScore,qty:qtyScore,price:priceScore,cert:certScore} };
+}
+function bestMatch(rfq){
+  var best=null;
+  DB.products.forEach(function(p){ var m=matchRFQ(rfq,p); if(!best||m.score>best.score) best=m; });
+  return best;
+}
+function rankMatches(rfq){
+  return DB.products.map(function(p){return matchRFQ(rfq,p);}).sort(function(a,b){return b.score-a.score;});
+}
+
+/* ==================== 报价计算 ==================== */
+function calc(){
+  var g=function(id){return parseFloat(document.getElementById(id).value)||0;};
+  var cost=g('cCost'), qty=Math.max(1,g('cQty')), margin=g('cMargin'), pack=g('cPack');
+  var domestic=g('cDomestic'), freight=g('cFreight'), insurance=g('cInsurance'), fee=g('cFee'), rate=g('cRate');
+  var totalCostCNY = (cost+pack)*qty + domestic;                 // 总成本（人民币）
+  var exwUnitUSD  = (cost+pack)*(1+margin/100)/rate;             // EXW 单价
+  var fobUnitUSD  = exwUnitUSD + domestic/qty/rate;              // FOB 单价（含国内运费）
+  var cifUnitUSD  = fobUnitUSD/(1-insurance/100) + freight/qty;  // CIF 单价（含保险+国际运费）
+  // 平台佣金计入报价（反推）：把 fee 摊进单价
+  var feeFactor = 1/(1-fee/100);
+  exwUnitUSD*=feeFactor; fobUnitUSD*=feeFactor; cifUnitUSD*=feeFactor;
+  var revenueUSD = fobUnitUSD*qty;
+  var platformFeeUSD = revenueUSD*(fee/100);
+  var profitCNY = revenueUSD*rate - totalCostCNY - platformFeeUSD*rate;
+  var profitPct = totalCostCNY? (profitCNY/totalCostCNY*100):0;
+  CALC_RESULT = { cost:cost, qty:qty, margin:margin, exw:exwUnitUSD, fob:fobUnitUSD, cif:cifUnitUSD,
+                  currency:'USD', term:'FOB', profitCNY:profitCNY, profitPct:profitPct,
+                  rate:rate, productName:(document.getElementById('calcProduct').selectedOptions[0]||{}).text||''
+                };
+  document.getElementById('qExw').textContent = money(exwUnitUSD);
+  document.getElementById('qExwC').textContent = '≈ '+cny(exwUnitUSD*rate);
+  document.getElementById('qFob').textContent = money(fobUnitUSD);
+  document.getElementById('qFobC').textContent = '≈ '+cny(fobUnitUSD*rate);
+  document.getElementById('qCif').textContent = money(cifUnitUSD);
+  document.getElementById('qCifC').textContent = '≈ '+cny(cifUnitUSD*rate);
+  // 利润分析
+  var rfqId=document.getElementById('calcRfq').value;
+  var rfq=DB.rfqs.find(function(r){return r.id===rfqId;});
+  var targetHtml='';
+  if(rfq&&rfq.targetPrice){
+    var gap=(fobUnitUSD-rfq.targetPrice)/rfq.targetPrice*100;
+    targetHtml='<div class="hint" style="margin-top:8px;">买家目标价 '+money(rfq.targetPrice)+' · 你的 FOB '+(gap>0?'高出':'低于')+' '+Math.abs(gap).toFixed(1)+'%</div>';
+    document.getElementById('calcTargetHint').textContent='目标价 '+money(rfq.targetPrice);
+  } else document.getElementById('calcTargetHint').textContent='';
+  document.getElementById('profitBox').innerHTML=
+    '<div style="background:var(--bg);border-radius:11px;padding:13px 15px;">'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span class="muted">总成本</span><b>'+cny(totalCostCNY)+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span class="muted">FOB 总价</span><b>'+money(revenueUSD)+' ('+cny(revenueUSD*rate)+')</b></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span class="muted">平台佣金</span><b>-'+money(platformFeeUSD)+'</b></div>'+
+    '<div style="display:flex;justify-content:space-between;font-size:14px;padding-top:8px;border-top:1px dashed var(--line);"><span>预计利润</span><b style="color:'+(profitCNY>=0?'var(--green)':'var(--red)')+';">'+(profitCNY>=0?'+':'')+cny(profitCNY)+' ('+profitPct.toFixed(1)+'%)</b></div>'+targetHtml+'</div>';
+  renderTiers(cost,pack,domestic,freight,insurance,fee,rate,qty);
+}
+function renderTiers(cost,pack,domestic,freight,insurance,fee,rate,baseQty){
+  var tiers=[{m:1,l:'1× 基础量'},{m:2,l:'2× 量'},{m:5,l:'5× 量'}];
+  var html='';
+  tiers.forEach(function(t,i){
+    var q=Math.round(baseQty*t.m);
+    var m=Math.max(8, (i===0?CALC_RESULT.margin:i===1?CALC_RESULT.margin-3:CALC_RESULT.margin-6));
+    var unit=((cost+pack)*(1+m/100)/rate + domestic/q/rate)/(1-insurance/100)/(1-fee/100) + freight/q;
+    html+='<tr><td>'+q.toLocaleString()+' '+'</td><td><span class="chip '+(i===2?'green':'gray')+'">'+m+'%</span></td><td><b>'+money(unit)+'</b></td><td>'+money(unit*q)+'</td></tr>';
+  });
+  document.getElementById('tierBody').innerHTML=html;
+}
+function onCalcProductChange(){
+  var id=document.getElementById('calcProduct').value;
+  var p=DB.products.find(function(x){return x.id===id;});
+  if(p){ document.getElementById('cCost').value=p.cost; document.getElementById('cPack').value=DB.settings.pack; }
+  calc();
+}
+function onCalcRfqChange(){
+  var id=document.getElementById('calcRfq').value;
+  var r=DB.rfqs.find(function(x){return x.id===id;});
+  if(r){
+    document.getElementById('cQty').value=r.qty;
+    // 尝试按匹配产品带入成本
+    var m=bestMatch(r);
+    if(m){ document.getElementById('calcProduct').value=m.product.id; document.getElementById('cCost').value=m.product.cost; }
+  }
+  calc();
+}
+
+/* ==================== 渲染：工作台 ==================== */
+function renderDashboard(){
+  var newRfqs=DB.rfqs.filter(function(r){return r.status==='new';});
+  var high=DB.rfqs.filter(function(r){return (r._score||0)>=75;});
+  var quoted=DB.rfqs.filter(function(r){return r.status!=='new';});
+  var amount=DB.quotes.reduce(function(s,q){return s+(q.fob||0)*(q.qty||0);},0);
+  document.getElementById('greeting').textContent='您好，'+(DB.settings.contact||'报价高手')+' 👋';
+  document.getElementById('heroNew').textContent=newRfqs.length;
+  document.getElementById('heroHigh').textContent=high.length;
+  document.getElementById('heroQuoted').textContent=quoted.length;
+  document.getElementById('heroAmount').textContent='$'+(amount/1000).toFixed(1)+'k';
+  document.getElementById('stRfq').textContent=DB.rfqs.length;
+  document.getElementById('stNew').textContent=newRfqs.length;
+  var decided=DB.rfqs.filter(function(r){return r.status==='won'||r.status==='lost';});
+  var wins=DB.rfqs.filter(function(r){return r.status==='won';}).length;
+  document.getElementById('stWin').textContent=(decided.length?Math.round(wins/decided.length*100):0)+'%';
+  document.getElementById('stProd').textContent=DB.products.length;
+  var badge=document.getElementById('navBadgeRfq');
+  if(newRfqs.length){badge.hidden=false;badge.textContent=newRfqs.length;}else badge.hidden=true;
+
+  // 待处理询盘（按匹配分排序）
+  var pending=newRfqs.slice().sort(function(a,b){return (b._score||0)-(a._score||0);}).slice(0,5);
+  document.getElementById('dashRfqList').innerHTML = pending.length? pending.map(function(r){
+    var s=r._score||0;
+    return '<div class="list-row"><div class="score-ring '+scoreClass(s)+'">'+s+'</div>'+
+      '<div class="rb"><div class="rt">'+esc(r.product)+'</div><div class="rs">'+esc(r.buyer)+' · '+esc(r.country)+' · '+r.qty.toLocaleString()+' '+esc(r.unit)+'</div></div>'+
+      '<div class="ra"><button class="btn btn-primary btn-sm" data-act="match-one" data-id="'+r.id+'">匹配</button></div></div>';
+  }).join('') : emptyHtml('暂无待处理询盘');
+
+  // 最近报价
+  var recent=DB.quotes.slice().reverse().slice(0,5);
+  document.getElementById('dashQuoteList').innerHTML = recent.length? recent.map(function(q){
+    var r=DB.rfqs.find(function(x){return x.id===q.rfqId;});
+    return '<div class="list-row"><div class="ri" style="background:var(--green-l);color:var(--green);">$</div>'+
+      '<div class="rb"><div class="rt">'+esc(q.productName||(r?r.product:'手动报价'))+'</div><div class="rs">'+(r?esc(r.buyer)+' · ':'')+money(q.fob)+' / 件 · '+q.qty.toLocaleString()+' 件</div></div>'+
+      '<div class="ra">'+statusChip(q.status||'draft')+'</div></div>';
+  }).join('') : emptyHtml('还没有报价记录');
+}
+function emptyHtml(msg){
+  return '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M4 7h16v13H4zM4 7l2-4h12l2 4M9 12h6"/></svg><p>'+msg+'</p></div>';
+}
+
+/* ==================== 渲染：智能匹配 ==================== */
+function renderMatching(){
+  var kw=(document.getElementById('rfqSearch').value||'').toLowerCase();
+  var filter=document.getElementById('rfqFilter').value;
+  var list=DB.rfqs.filter(function(r){
+    if(filter!=='all'&&r.status!==filter) return false;
+    if(kw && (r.buyer+' '+r.product+' '+r.country).toLowerCase().indexOf(kw)<0) return false;
+    return true;
+  }).sort(function(a,b){return (b._score||0)-(a._score||0);});
+  document.getElementById('rfqList').innerHTML = list.length? list.map(function(r){
+    var s=r._score||0;
+    return '<div class="list-row"><div class="score-ring '+scoreClass(s)+'">'+s+'</div>'+
+      '<div class="rb"><div class="rt">'+esc(r.product)+'</div><div class="rs">'+esc(r.buyer)+' · '+esc(r.country)+' · '+r.qty.toLocaleString()+' '+esc(r.unit)+' · 目标 '+money(r.targetPrice)+' · '+r.date+'</div></div>'+
+      '<div class="ra">'+statusChip(r.status)+
+      '<button class="btn btn-line btn-sm" data-act="match-one" data-id="'+r.id+'">详情</button>'+
+      '<button class="btn btn-primary btn-sm" data-act="rfq-to-calc" data-id="'+r.id+'">去报价</button>'+
+      '<button class="btn btn-danger btn-sm" data-act="del-rfq" data-id="'+r.id+'">删</button></div></div>';
+  }).join('') : emptyHtml('没有匹配的询盘，试试调整筛选或新增 RFQ');
+}
+function showMatchDetail(rfqId){
+  var r=DB.rfqs.find(function(x){return x.id===rfqId;});
+  if(!r) return;
+  var ranked=rankMatches(r).slice(0,5);
+  document.getElementById('matchDetailTitle').textContent='「'+r.product+'」匹配结果';
+  var html='<p class="muted tiny" style="margin-top:-4px;">买家 '+esc(r.buyer)+' · '+esc(r.country)+' · 需求 '+r.qty.toLocaleString()+' '+esc(r.unit)+' · 目标价 '+money(r.targetPrice)+'</p>';
+  if(!ranked.length||!DB.products.length){ html+=emptyHtml('产品库为空，请先添加产品'); }
+  else html+=ranked.map(function(m,i){
+    var s=m.score;
+    return '<div class="list-row"><div class="score-ring '+scoreClass(s)+'">'+(i===0?'★':'')+s+'</div>'+
+      '<div class="rb"><div class="rt">'+esc(m.product.name)+' <span class="muted tiny">/ '+esc(m.product.nameEn)+'</span></div>'+
+      '<div class="rs">'+esc(m.reasons.join(' · ')||'匹配度一般')+' · 关键词: '+esc(m.hits.slice(0,5).join(', '))+'</div></div>'+
+      '<div class="ra">'+(i===0?'<span class="chip green">最佳匹配</span>':'')+
+      '<button class="btn btn-primary btn-sm" data-act="match-to-calc" data-rfq="'+r.id+'" data-prod="'+m.product.id+'">用它报价</button></div></div>';
+  }).join('');
+  document.getElementById('matchDetail').innerHTML=html;
+  document.getElementById('matchDetailCard').style.display='block';
+  document.getElementById('matchDetailCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ==================== 渲染：报价计算器 ==================== */
+function fillSelects(){
+  var cr=document.getElementById('calcRfq');
+  cr.innerHTML='<option value="">— 不关联 —</option>'+DB.rfqs.map(function(r){return '<option value="'+r.id+'">'+esc(r.buyer)+' · '+esc(r.product)+'</option>';}).join('');
+  var cp=document.getElementById('calcProduct');
+  cp.innerHTML='<option value="">— 手动输入 —</option>'+DB.products.map(function(p){return '<option value="'+p.id+'">'+esc(p.name)+' ('+esc(p.nameEn)+')</option>';}).join('');
+  var cor=document.getElementById('compRfq');
+  cor.innerHTML='<option value="">— 手动填写 —</option>'+DB.rfqs.map(function(r){return '<option value="'+r.id+'">'+esc(r.buyer)+' · '+esc(r.product)+'</option>';}).join('');
+  // 模板场景
+  var scenes=Object.keys(SCENE_LABELS);
+  document.getElementById('tplScene').innerHTML=scenes.map(function(s){return '<option value="'+s+'">'+SCENE_LABELS[s]+'</option>';}).join('');
+  onTplSceneChange();
+}
+
+/* ==================== 渲染：话术生成 ==================== */
+function templatesOfScene(scene){ return DB.templates.filter(function(t){return t.scene===scene;}); }
+function onTplSceneChange(){
+  var scene=document.getElementById('tplScene').value;
+  var list=templatesOfScene(scene);
+  document.getElementById('tplSelect').innerHTML=list.length?list.map(function(t){return '<option value="'+t.id+'">['+t.lang+'] '+esc(t.name)+'</option>';}).join(''):'<option value="">该场景暂无模板</option>';
+  onTplSelectChange();
+}
+function onTplSelectChange(){ renderVarGrid(); }
+function currentTemplate(){ var id=document.getElementById('tplSelect').value; return DB.templates.find(function(t){return t.id===id;}); }
+
+var VAR_DEFS=[
+  {k:'buyer',l:'买家'}, {k:'product',l:'产品'}, {k:'qty',l:'数量'}, {k:'unit',l:'单位'},
+  {k:'price',l:'单价'}, {k:'currency',l:'币种'}, {k:'term',l:'贸易术语'},
+  {k:'leadTime',l:'交期(天)'}, {k:'certs',l:'认证'}, {k:'validUntil',l:'有效期'},
+  {k:'date',l:'日期'}, {k:'targetPrice',l:'目标价'}, {k:'years',l:'出口年限'}
+];
+function defaultVars(){
+  var s=DB.settings;
+  return { buyer:'', product:'', qty:'', unit:'pcs', price:'', currency:'USD', term:'FOB',
+    leadTime:s.lead, certs:'CE, FDA', validUntil:addDays(15), date:today(), targetPrice:'', years:'10+' };
+}
+function renderVarGrid(vars){
+  vars=vars||collectVarsFromRfq();
+  document.getElementById('varGrid').innerHTML=VAR_DEFS.map(function(v){
+    return '<div class="field"><label>'+v.l+'</label><input id="var_'+v.k+'" value="'+esc(vars[v.k]||'')+'"></div>';
+  }).join('');
+}
+function collectVarsFromRfq(){
+  var v=defaultVars();
+  var r=DB.rfqs.find(function(x){return x.id===document.getElementById('compRfq').value;});
+  if(r){
+    v.buyer=r.buyer; v.product=r.product; v.qty=r.qty; v.unit=r.unit;
+    v.targetPrice=r.targetPrice?money(r.targetPrice):'';
+    var m=bestMatch(r);
+    if(m){ v.leadTime=m.product.lead; v.certs=(m.product.certs||[]).join(', '); }
+  }
+  if(CALC_RESULT){ v.price=CALC_RESULT[CALC_RESULT.term.toLowerCase()]?money(CALC_RESULT[CALC_RESULT.term.toLowerCase()]):money(CALC_RESULT.fob); v.term=CALC_RESULT.term; v.currency=CALC_RESULT.currency; }
+  return v;
+}
+function onCompRfqChange(){ renderVarGrid(collectVarsFromRfq()); }
+function genText(){
+  var t=currentTemplate();
+  if(!t){ toast('请先选择模板'); return; }
+  var vals={company:DB.settings.company, contact:DB.settings.contact, email:DB.settings.email, whatsapp:DB.settings.whatsapp};
+  VAR_DEFS.forEach(function(v){ var el=document.getElementById('var_'+v.k); if(el) vals[v.k]=el.value; });
+  var render=function(s){ return String(s||'').replace(/\{\{(\w+)\}\}/g,function(m,k){ return vals[k]!==undefined?vals[k]:m; }); };
+  var subj=render(t.subject);
+  var body=render(t.body);
+  document.getElementById('mailSubject').value=subj;
+  document.getElementById('mailBody').textContent=body;
+  window._lastLetter={subject:subj, body:body, scene:t.scene, lang:t.lang, buyer:vals.buyer, date:today()};
+  toast('话术已生成');
+}
+function saveLetter(){
+  if(!window._lastLetter){ toast('请先生成话术'); return; }
+  var l=Object.assign({id:uid()},window._lastLetter);
+  DB.letters.push(l); save(K.letters,DB.letters); renderLetters(); toast('已保存话术记录');
+}
+function renderLetters(){
+  var list=DB.letters.slice().reverse();
+  document.getElementById('letterList').innerHTML=list.length?list.map(function(l){
+    return '<div class="list-row"><div class="ri" style="background:var(--purple-l);color:var(--purple);">信</div>'+
+      '<div class="rb"><div class="rt">'+esc(l.subject)+'</div><div class="rs">'+(SCENE_LABELS[l.scene]||l.scene)+' · '+esc(l.lang)+' · '+esc(l.buyer||'手动')+' · '+l.date+'</div></div>'+
+      '<div class="ra"><button class="btn btn-line btn-sm" data-act="view-letter" data-id="'+l.id+'">查看</button>'+
+      '<button class="btn btn-danger btn-sm" data-act="del-letter" data-id="'+l.id+'">删</button></div></div>';
+  }).join(''):emptyHtml('暂无已保存的话术');
+}
+
+/* ==================== 渲染：买家分析 ==================== */
+function renderAnalytics(){
+  var buyers={}, countries={}, statuses={new:0,quoted:0,won:0,lost:0}, cats={};
+  DB.rfqs.forEach(function(r){
+    buyers[r.buyer]=(buyers[r.buyer]||0)+1;
+    countries[r.country]=(countries[r.country]||0)+1;
+    statuses[r.status]=(statuses[r.status]||0)+1;
+    var best=DB.products.find(function(p){return p.id===r._bestId;});
+    var cat=best?best.category:'其他';
+    cats[cat]=(cats[cat]||0)+1;
+  });
+  document.getElementById('anBuyers').textContent=Object.keys(buyers).length;
+  document.getElementById('anCountries').textContent=Object.keys(countries).length;
+  document.getElementById('anQuoted').textContent=statuses.quoted+statuses.won+statuses.lost;
+  document.getElementById('anWon').textContent=statuses.won;
+  document.getElementById('countryBars').innerHTML=barHtml(countries,8);
+  document.getElementById('catBars').innerHTML=barHtml(cats,8);
+  var stColor={new:'gray',quoted:'blue',won:'green',lost:'red'};
+  var stLabel={new:'待处理',quoted:'已报价',won:'赢单',lost:'丢单'};
+  var total=DB.rfqs.length||1;
+  document.getElementById('statusBars').innerHTML=['new','quoted','won','lost'].map(function(s){
+    var pct=Math.round(statuses[s]/total*100);
+    return '<div class="bar-row"><div class="bl">'+stLabel[s]+'</div><div class="bt"><div class="bf" style="width:'+pct+'%;background:var(--'+(s==='new'?'sub':s==='quoted'?'blue':s==='won'?'green':'red')+');">'+'</div></div><div class="bv">'+statuses[s]+'</div></div>';
+  }).join('');
+  // 高价值买家榜：按 RFQ 数 + 目标价金额
+  var rank=Object.keys(buyers).map(function(b){
+    var rs=DB.rfqs.filter(function(r){return r.buyer===b;});
+    var val=rs.reduce(function(s,r){return s+r.qty*(r.targetPrice||0);},0);
+    var country=rs[0].country;
+    return {b:b,c:country,n:rs.length,val:val};
+  }).sort(function(a,b){return b.val-a.val;}).slice(0,6);
+  document.getElementById('buyerRank').innerHTML=rank.length?rank.map(function(x,i){
+    return '<div class="list-row" style="padding:10px 12px;"><div class="ri" style="background:var(--amber-l);color:var(--amber);">'+(i+1)+'</div>'+
+      '<div class="rb"><div class="rt">'+esc(x.b)+'</div><div class="rs">'+esc(x.c)+' · '+x.n+' 条询盘</div></div>'+
+      '<div style="text-align:right;"><b style="color:var(--coral-d);">'+(x.val>=1000?'$'+(x.val/1000).toFixed(1)+'k':money(x.val))+'</b><div class="tiny muted">预估需求额</div></div></div>';
+  }).join(''):emptyHtml('暂无买家数据');
+}
+function barHtml(obj, limit){
+  var arr=Object.keys(obj).map(function(k){return {k:k,v:obj[k]};}).sort(function(a,b){return b.v-a.v;}).slice(0,limit);
+  if(!arr.length) return emptyHtml('暂无数据');
+  var max=arr[0].v||1;
+  return arr.map(function(x){
+    return '<div class="bar-row"><div class="bl" title="'+esc(x.k)+'">'+esc(x.k)+'</div>'+
+      '<div class="bt"><div class="bf" style="width:'+Math.round(x.v/max*100)+'%"></div></div><div class="bv">'+x.v+'</div></div>';
+  }).join('');
+}
+
+/* ==================== 渲染：产品库 / 模板 / 设置 / 数据 ==================== */
+function renderDataPage(){
+  // 产品表
+  document.getElementById('productBody').innerHTML=DB.products.length?DB.products.map(function(p){
+    return '<tr><td><b>'+esc(p.name)+'</b><div class="tiny muted">'+esc(p.nameEn)+'</div></td>'+
+      '<td>'+esc(p.category)+'</td><td>'+cny(p.cost)+'</td><td>'+p.moq+' '+esc(p.unit)+'</td><td>'+p.lead+'天</td>'+
+      '<td class="tiny muted">'+esc((p.keywords||[]).slice(0,3).join(', '))+'</td>'+
+      '<td><button class="btn btn-line btn-sm" data-act="edit-product" data-id="'+p.id+'">改</button> '+
+      '<button class="btn btn-danger btn-sm" data-act="del-product" data-id="'+p.id+'">删</button></td></tr>';
+  }).join(''):'<tr><td colspan="7">'+emptyHtml('产品库为空')+'</td></tr>';
+  // 设置
+  var s=DB.settings;
+  var map={setCompany:'company',setContact:'contact',setEmail:'email',setWhatsapp:'whatsapp',setRate:'rate',setMargin:'margin',setFee:'fee',setPack:'pack',setDomestic:'domestic',setFreight:'freight',setInsurance:'insurance',setLead:'lead'};
+  Object.keys(map).forEach(function(el){ var e=document.getElementById(el); if(e) e.value=s[map[el]]; });
+  // 模板管理
+  document.getElementById('tplManageList').innerHTML=DB.templates.map(function(t){
+    return '<div class="list-row"><div class="ri" style="background:var(--blue-l);color:var(--blue);">'+esc(t.lang.slice(0,1))+'</div>'+
+      '<div class="rb"><div class="rt">'+esc(t.name)+'</div><div class="rs">'+(SCENE_LABELS[t.scene]||t.scene)+' · '+esc(t.lang)+' · '+esc(t.subject)+'</div></div>'+
+      '<div class="ra"><button class="btn btn-line btn-sm" data-act="edit-tpl" data-id="'+t.id+'">改</button>'+
+      '<button class="btn btn-danger btn-sm" data-act="del-tpl" data-id="'+t.id+'">删</button></div></div>';
+  }).join('')||emptyHtml('暂无模板');
+  // 数据统计
+  var size=0; try{ Object.keys(K).forEach(function(k){ var raw=localStorage.getItem(K[k]); size+=(raw?raw.length:0); }); }catch(e){}
+  document.getElementById('dataStats').innerHTML='当前存储：'+DB.products.length+' 个产品 · '+DB.rfqs.length+' 条询盘 · '+
+    DB.quotes.length+' 条报价 · '+DB.templates.length+' 个模板 · '+DB.letters.length+' 条话术，约 '+(size/1024).toFixed(1)+' KB';
+}
+function renderAll(){ renderDashboard(); renderMatching(); fillSelects(); calc(); renderAnalytics(); renderDataPage(); renderLetters(); }
+
+/* ==================== 表单弹框：产品 ==================== */
+function productForm(p){
+  p=p||{};
+  return '<div class="field-row"><div class="field"><label>中文名称 *</label><input id="f_name" value="'+esc(p.name||'')+'"></div>'+
+    '<div class="field"><label>英文名称 *</label><input id="f_nameEn" value="'+esc(p.nameEn||'')+'"></div></div>'+
+    '<div class="field-row three"><div class="field"><label>品类</label><input id="f_category" value="'+esc(p.category||'')+'"></div>'+
+    '<div class="field"><label>成本 (¥/件)</label><input type="number" id="f_cost" value="'+(p.cost||0)+'"></div>'+
+    '<div class="field"><label>MOQ</label><input type="number" id="f_moq" value="'+(p.moq||100)+'"></div></div>'+
+    '<div class="field-row three"><div class="field"><label>单位</label><input id="f_unit" value="'+esc(p.unit||'pcs')+'"></div>'+
+    '<div class="field"><label>交期 (天)</label><input type="number" id="f_lead" value="'+(p.lead||25)+'"></div>'+
+    '<div class="field"><label>月产能</label><input type="number" id="f_capacity" value="'+(p.capacity||10000)+'"></div></div>'+
+    '<div class="field"><label>关键词（中英文，逗号分隔）</label><input id="f_keywords" value="'+esc((p.keywords||[]).join(', '))+'" placeholder="tumbler, water bottle, 保温杯"></div>'+
+    '<div class="field"><label>认证（逗号分隔）</label><input id="f_certs" value="'+esc((p.certs||[]).join(', '))+'" placeholder="CE, FDA, RoHS"></div>';
+}
+function collectProductForm(){
+  var g=function(id){return document.getElementById(id).value.trim();};
+  return { name:g('f_name'), nameEn:g('f_nameEn'), category:g('f_category'), cost:parseFloat(g('f_cost'))||0,
+    moq:parseInt(g('f_moq'))||1, unit:g('f_unit')||'pcs', lead:parseInt(g('f_lead'))||25, capacity:parseInt(g('f_capacity'))||0,
+    keywords:g('f_keywords').split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean),
+    certs:g('f_certs').split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean) };
+}
+/* ==================== 表单弹框：RFQ ==================== */
+function rfqForm(r){
+  r=r||{};
+  return '<div class="field-row"><div class="field"><label>买家名称 *</label><input id="f_buyer" value="'+esc(r.buyer||'')+'"></div>'+
+    '<div class="field"><label>国家/地区</label><input id="f_country" value="'+esc(r.country||'')+'"></div></div>'+
+    '<div class="field"><label>需求产品 *</label><input id="f_product" value="'+esc(r.product||'')+'"></div>'+
+    '<div class="field-row three"><div class="field"><label>数量</label><input type="number" id="f_qty" value="'+(r.qty||1000)+'"></div>'+
+    '<div class="field"><label>单位</label><input id="f_unit2" value="'+esc(r.unit||'pcs')+'"></div>'+
+    '<div class="field"><label>目标价 ($)</label><input type="number" id="f_target" value="'+(r.targetPrice||0)+'" step="0.01"></div></div>'+
+    '<div class="field"><label>规格要求</label><input id="f_specs" value="'+esc(r.specs||'')+'" placeholder="认证、材质、包装等"></div>'+
+    '<div class="field-row"><div class="field"><label>来源平台</label><input id="f_source" value="'+esc(r.source||'Alibaba.com')+'"></div>'+
+    '<div class="field"><label>日期</label><input type="date" id="f_date" value="'+(r.date||today())+'"></div></div>'+
+    '<div class="field"><label>备注</label><textarea id="f_note">'+esc(r.note||'')+'</textarea></div>';
+}
+function collectRfqForm(){
+  var g=function(id){return document.getElementById(id).value.trim();};
+  return { buyer:g('f_buyer'), country:g('f_country'), product:g('f_product'), qty:parseInt(g('f_qty'))||1,
+    unit:g('f_unit2')||'pcs', targetPrice:parseFloat(g('f_target'))||0, specs:g('f_specs'), source:g('f_source'),
+    date:g('f_date')||today(), note:g('f_note'), status:'new' };
+}
+/* ==================== 表单弹框：模板 ==================== */
+function tplForm(t){
+  t=t||{};
+  var sceneOpts=Object.keys(SCENE_LABELS).map(function(s){return '<option value="'+s+'"'+(t.scene===s?' selected':'')+'>'+SCENE_LABELS[s]+'</option>';}).join('');
+  return '<div class="field-row"><div class="field"><label>场景</label><select id="f_scene">'+sceneOpts+'</select></div>'+
+    '<div class="field"><label>语言</label><input id="f_lang" value="'+esc(t.lang||'English')+'"></div></div>'+
+    '<div class="field"><label>模板名称</label><input id="f_tname" value="'+esc(t.name||'')+'"></div>'+
+    '<div class="field"><label>邮件主题</label><input id="f_subject" value="'+esc(t.subject||'')+'" placeholder="可用变量 {{product}} 等"></div>'+
+    '<div class="field"><label>正文</label><textarea id="f_body" style="min-height:180px;">'+esc(t.body||'')+'</textarea></div>'+
+    '<p class="hint">可用变量：'+VAR_DEFS.map(function(v){return '{{'+v.k+'}}';}).join(' ')+' {{company}} {{contact}} {{email}} {{whatsapp}}</p>';
+}
+function collectTplForm(){
+  var g=function(id){return document.getElementById(id).value;};
+  return { scene:g('f_scene'), lang:g('f_lang').trim()||'English', name:g('f_tname').trim()||'未命名模板', subject:g('f_subject'), body:g('f_body') };
+}
+
+/* ==================== 事件处理 ==================== */
+document.addEventListener('click', function(e){
+  var el=e.target.closest('[data-act]');
+  if(!el){
+    if(e.target.classList&&e.target.classList.contains('modal-mask')) closeModal();
+    return;
+  }
+  var act=el.getAttribute('data-act');
+  var id=el.getAttribute('data-id');
+  switch(act){
+    case 'goto': gotoPage(el.getAttribute('data-page')); break;
+    case 'modal-mask': if(e.target===el) closeModal(); break;
+    case 'close-modal': closeModal(); break;
+    case 'menu-toggle': document.getElementById('sidebar').classList.toggle('open'); break;
+
+    case 'add-rfq':
+      modal('录入 RFQ 询盘', rfqForm(), '<button class="btn btn-ghost" data-act="close-modal">取消</button><button class="btn btn-primary" id="submitRfq">保存</button>');
+      document.getElementById('submitRfq').onclick=function(){
+        var r=collectRfqForm();
+        if(!r.buyer||!r.product){ toast('请填写买家和产品'); return; }
+        r.id=uid(); var m=bestMatch(r); r._score=m?m.score:0; r._bestId=m?m.product.id:'';
+        DB.rfqs.push(r); save(K.rfqs,DB.rfqs); closeModal(); renderAll(); toast('RFQ 已录入');
+      };
+      break;
+    case 'del-rfq':
+      confirmModal('确定删除这条 RFQ 询盘吗？',function(){ DB.rfqs=DB.rfqs.filter(function(r){return r.id!==id;}); save(K.rfqs,DB.rfqs); renderAll(); toast('已删除'); });
+      break;
+    case 'batch-match':
+      DB.rfqs.forEach(function(r){ var m=bestMatch(r); r._score=m?m.score:0; r._bestId=m?m.product.id:''; });
+      save(K.rfqs,DB.rfqs); renderAll(); toast('匹配分已重新计算');
+      break;
+    case 'match-one': showMatchDetail(id); gotoPage('matching'); break;
+    case 'close-match': document.getElementById('matchDetailCard').style.display='none'; break;
+    case 'rfq-to-calc':
+      document.getElementById('calcRfq').value=id; gotoPage('calculator'); onCalcRfqChange(); break;
+    case 'match-to-calc':
+      gotoPage('calculator');
+      document.getElementById('calcRfq').value=el.getAttribute('data-rfq');
+      document.getElementById('calcProduct').value=el.getAttribute('data-prod');
+      onCalcProductChange();
+      break;
+
+    case 'save-quote':
+      if(!CALC_RESULT){ toast('请先计算报价'); break; }
+      var rfqId=document.getElementById('calcRfq').value;
+      var q=Object.assign({},CALC_RESULT,{id:uid(),rfqId:rfqId,date:today(),status:'draft'});
+      DB.quotes.push(q);
+      if(rfqId){ var rr=DB.rfqs.find(function(r){return r.id===rfqId;}); if(rr&&rr.status==='new') rr.status='quoted'; save(K.rfqs,DB.rfqs); }
+      save(K.quotes,DB.quotes); renderAll(); toast('报价已保存，关联 RFQ 状态已更新');
+      break;
+    case 'quote-to-composer':
+      if(!CALC_RESULT){ toast('请先计算报价'); break; }
+      gotoPage('composer'); renderVarGrid(collectVarsFromRfq()); toast('报价变量已带入');
+      break;
+
+    case 'gen-text': genText(); break;
+    case 'save-letter': saveLetter(); break;
+    case 'copy-text':
+      var txt=(document.getElementById('mailSubject').value+'\n\n'+document.getElementById('mailBody').textContent);
+      copyText(txt); break;
+    case 'download-letter':
+      var sub=document.getElementById('mailSubject').value||'quotation';
+      downloadFile(sub.replace(/[\\/:*?"<>|]/g,'_')+'.txt', (document.getElementById('mailSubject').value+'\n\n'+document.getElementById('mailBody').textContent), 'text/plain;charset=utf-8');
+      break;
+    case 'view-letter':
+      var l=DB.letters.find(function(x){return x.id===id;});
+      if(l) modal(l.subject,'<div style="white-space:pre-wrap;line-height:1.8;font-size:14px;">'+esc(l.body)+'</div>','<button class="btn btn-ghost" data-act="close-modal">关闭</button>');
+      break;
+    case 'del-letter':
+      confirmModal('删除这条话术记录？',function(){ DB.letters=DB.letters.filter(function(x){return x.id!==id;}); save(K.letters,DB.letters); renderLetters(); toast('已删除'); });
+      break;
+
+    case 'subtab':
+      document.querySelectorAll('.subtab').forEach(function(b){b.classList.toggle('on',b===el);});
+      document.querySelectorAll('.subpane').forEach(function(p){p.classList.toggle('on',p.id===el.getAttribute('data-pane'));});
+      break;
+    case 'add-product':
+      modal('新增产品', productForm(), '<button class="btn btn-ghost" data-act="close-modal">取消</button><button class="btn btn-primary" id="submitProd">保存</button>');
+      document.getElementById('submitProd').onclick=function(){
+        var p=collectProductForm(); if(!p.name){toast('请填写产品名称');return;}
+        p.id=uid(); DB.products.push(p); save(K.products,DB.products); closeModal(); renderAll(); toast('产品已添加');
+      };
+      break;
+    case 'edit-product':
+      var p=DB.products.find(function(x){return x.id===id;});
+      if(p) modal('编辑产品', productForm(p), '<button class="btn btn-ghost" data-act="close-modal">取消</button><button class="btn btn-primary" id="submitProd">保存</button>');
+      if(p) document.getElementById('submitProd').onclick=function(){
+        var np=collectProductForm(); np.id=id;
+        DB.products=DB.products.map(function(x){return x.id===id?np:x;}); save(K.products,DB.products); closeModal(); renderAll(); toast('已更新');
+      };
+      break;
+    case 'del-product':
+      confirmModal('确定删除该产品？已有关联报价不受影响。',function(){ DB.products=DB.products.filter(function(x){return x.id!==id;}); save(K.products,DB.products); renderAll(); toast('已删除'); });
+      break;
+    case 'save-settings':
+      var s=DB.settings;
+      s.company=document.getElementById('setCompany').value; s.contact=document.getElementById('setContact').value;
+      s.email=document.getElementById('setEmail').value; s.whatsapp=document.getElementById('setWhatsapp').value;
+      ['rate','margin','fee','pack','domestic','freight','insurance','lead'].forEach(function(k){ s[k]=parseFloat(document.getElementById('set'+k.charAt(0).toUpperCase()+k.slice(1)).value)||0; });
+      save(K.settings,s); calc(); renderDashboard(); toast('设置已保存');
+      break;
+    case 'add-tpl':
+      modal('新增话术模板', tplForm(), '<button class="btn btn-ghost" data-act="close-modal">取消</button><button class="btn btn-primary" id="submitTpl">保存</button>');
+      document.getElementById('submitTpl').onclick=function(){
+        var t=collectTplForm(); t.id=uid(); DB.templates.push(t); save(K.templates,DB.templates); closeModal(); onTplSceneChange(); renderDataPage(); toast('模板已添加');
+      };
+      break;
+    case 'edit-tpl':
+      var t=DB.templates.find(function(x){return x.id===id;});
+      if(t) modal('编辑模板', tplForm(t), '<button class="btn btn-ghost" data-act="close-modal">取消</button><button class="btn btn-primary" id="submitTpl">保存</button>');
+      if(t) document.getElementById('submitTpl').onclick=function(){
+        var nt=collectTplForm(); nt.id=id;
+        DB.templates=DB.templates.map(function(x){return x.id===id?nt:x;}); save(K.templates,DB.templates); closeModal(); onTplSceneChange(); renderDataPage(); toast('已更新');
+      };
+      break;
+    case 'del-tpl':
+      confirmModal('确定删除该模板？',function(){ DB.templates=DB.templates.filter(function(x){return x.id!==id;}); save(K.templates,DB.templates); onTplSceneChange(); renderDataPage(); toast('已删除'); });
+      break;
+
+    case 'export-data':
+      var data={exportedAt:new Date().toISOString(), version:1};
+      Object.keys(K).forEach(function(key){ data[key]=DB[key]; });
+      downloadFile('rfq-backup-'+today()+'.json', JSON.stringify(data,null,2), 'application/json');
+      toast('备份已导出');
+      break;
+    case 'import-data': document.getElementById('importFile').click(); break;
+    case 'load-seed':
+      confirmModal('载入示例数据会覆盖当前全部数据，确定继续？',function(){
+        DB.products=SEED_PRODUCTS.map(function(p){return Object.assign({},p);});
+        DB.rfqs=SEED_RFQS.map(function(r){return Object.assign({},r);});
+        DB.templates=SEED_TEMPLATES.map(function(t){return Object.assign({},t);});
+        DB.quotes=[]; DB.letters=[];
+        localStorage.setItem(PFX+'seeded','1'); saveAll(); initDB(); renderAll(); toast('示例数据已载入');
+      });
+      break;
+    case 'clear-data':
+      confirmModal('⚠️ 将清空产品、询盘、报价、话术等全部数据，且不可恢复！建议先导出备份。确定清空？',function(){
+        Object.keys(K).forEach(function(k){ localStorage.removeItem(K[k]); });
+        localStorage.removeItem(PFX+'seeded');
+        DB={products:[],rfqs:[],quotes:[],templates:[],letters:[],settings:Object.assign({},DEFAULT_SETTINGS)};
+        saveAll(); localStorage.setItem(PFX+'seeded','1'); renderAll(); toast('数据已清空');
+      });
+      break;
+  }
+});
+function onImportFile(event){
+  var file=event.target.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(){
+    try{
+      var data=JSON.parse(reader.result);
+      var ok=false;
+      Object.keys(K).forEach(function(key){ if(data[key]!==undefined){ DB[key]=data[key]; ok=true; } });
+      if(!ok){ toast('备份文件格式不正确'); return; }
+      if(DB.settings) DB.settings=Object.assign({},DEFAULT_SETTINGS,DB.settings);
+      saveAll(); initDB(); renderAll(); toast('数据导入成功');
+    }catch(e){ toast('导入失败：JSON 解析错误'); }
+    event.target.value='';
+  };
+  reader.readAsText(file,'utf-8');
+}
+function gotoPage(page){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  var pg=document.getElementById('page-'+page); if(pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-item,.bottom-nav button').forEach(function(b){ b.classList.toggle('active', b.getAttribute('data-page')===page); });
+  document.getElementById('sidebar').classList.remove('open');
+  window.scrollTo(0,0);
+  if(page==='analytics') renderAnalytics();
+  if(page==='data') renderDataPage();
+}
+function copyText(txt){
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){toast('已复制到剪贴板');},function(){fallbackCopy(txt);}); }
+  else fallbackCopy(txt);
+}
+function fallbackCopy(txt){
+  var ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); toast('已复制到剪贴板'); }catch(e){ toast('复制失败，请手动选择'); }
+  ta.remove();
+}
+function downloadFile(name, content, type){
+  var blob=new Blob([content],{type:type||'text/plain;charset=utf-8'});
+  var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+
+/* ==================== 初始化 ==================== */
+document.getElementById('menuToggle').addEventListener('click',function(){ document.getElementById('sidebar').classList.toggle('open'); });
+document.addEventListener('dblclick',function(e){ e.preventDefault(); });
+initDB();
+renderAll();
+</script>
+</body>
+</html>
